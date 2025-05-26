@@ -1,0 +1,57 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Next.js build artifacts
+.next/
+out/
+
+# Next.js cache
+.next/cache
+
+# Node dependencies
+node_modules/
+jspm_packages/
+
+# Strapi (si el backend está en el mismo repo)
+build/
+.cache/
+# public/uploads/ # Descomenta si NO quieres subir tus uploads locales a Git
+                  # (recomendado si usarás Cloudinary en producción)
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Mac files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in your root
+.pnpm-debug.log*
+.pnpm-store
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+
+# Miscellaneous
+.history

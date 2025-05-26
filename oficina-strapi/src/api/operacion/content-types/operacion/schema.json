@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "operacions",
+  "info": {
+    "singularName": "operacion",
+    "pluralName": "operacions",
+    "displayName": "Operacion",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "nombre": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    }
+  }
+}

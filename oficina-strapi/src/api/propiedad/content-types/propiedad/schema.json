@@ -1,0 +1,116 @@
+{
+  "kind": "collectionType",
+  "collectionName": "propiedads",
+  "info": {
+    "singularName": "propiedad",
+    "pluralName": "propiedads",
+    "displayName": "Propiedad",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "titulo": {
+      "type": "string"
+    },
+    "localidad_simple": {
+      "type": "string"
+    },
+    "precio": {
+      "type": "decimal"
+    },
+    "fotos": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "operacion": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::operacion.operacion"
+    },
+    "tipo_de_propiedad": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::tipo-de-propiedad.tipo-de-propiedad"
+    },
+    "es_destacada": {
+      "type": "boolean",
+      "default": false
+    },
+    "descripcion": {
+      "type": "text"
+    },
+    "ambientes": {
+      "type": "biginteger"
+    },
+    "dormitorios": {
+      "type": "biginteger"
+    },
+    "banos": {
+      "type": "biginteger"
+    },
+    "superficie_cubierta": {
+      "type": "decimal"
+    },
+    "superficie_total": {
+      "type": "decimal"
+    },
+    "antiguedad": {
+      "type": "biginteger"
+    },
+    "expensas": {
+      "type": "decimal"
+    },
+    "cochera": {
+      "type": "biginteger"
+    },
+    "balcon": {
+      "type": "boolean"
+    },
+    "ascensor": {
+      "type": "boolean"
+    },
+    "amenities": {
+      "type": "boolean"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "titulo",
+      "required": true
+    },
+    "longitud": {
+      "type": "decimal",
+      "unique": true
+    },
+    "enlace_video": {
+      "type": "text",
+      "unique": false
+    },
+    "direccion_completa": {
+      "type": "text",
+      "unique": true
+    },
+    "latitud": {
+      "type": "decimal"
+    },
+    "piso": {
+      "type": "biginteger",
+      "unique": false
+    },
+    "moneda": {
+      "type": "enumeration",
+      "enum": [
+        "usd",
+        "ars"
+      ]
+    }
+  }
+}

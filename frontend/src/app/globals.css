@@ -1,0 +1,27 @@
+/* frontend/src/app/globals.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+   Puedes añadir estilos globales personalizados DEBAJO de estas directivas si es necesario.
+   Por ejemplo:
+   body {
+     font-family: 'TuFuentePreferida', sans-serif;
+     background-color: #f0f2f5; // Un color de fondo muy sutil para toda la página
+   }
+
+   h1, h2, h3, h4, h5, h6 {
+     color: #143159; // Tu schonfeld-blue-dark para todos los encabezados por defecto
+   }
+
+   a {
+     color: #e90000; // Tu schonfeld-red para los enlaces por defecto
+     text-decoration: none; // Quitar subrayado por defecto
+   }
+
+   a:hover {
+     text-decoration: underline; // Añadir subrayado en hover
+   }
+*/

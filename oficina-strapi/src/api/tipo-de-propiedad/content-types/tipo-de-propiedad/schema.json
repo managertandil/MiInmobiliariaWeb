@@ -1,0 +1,17 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tipo_de_propiedads",
+  "info": {
+    "singularName": "tipo-de-propiedad",
+    "pluralName": "tipo-de-propiedads",
+    "displayName": "TipoDePropiedad"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "nombre": {
+      "type": "string"
+    }
+  }
+}
