@@ -1,34 +1,32 @@
 // frontend/src/app/propiedades/page.js
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react'; // useCallback no se usa aquí, se puede quitar si no lo añades luego
 import { useRouter, useSearchParams } from 'next/navigation';
 import PropertyCard from '@/components/PropertyCard';
 import PaginationControls from '@/components/PaginationControls';
+import { ChevronDownIcon, ChevronUpIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'; // Iconos
 
 // Componente Spinner
 function Spinner({ size = 'h-5 w-5', color = 'border-schonfeld-blue-dark' }) {
   return ( <div className={`animate-spin rounded-full ${size} border-2 border-solid ${color} border-r-transparent`} role="status"> <span className="sr-only">Cargando...</span> </div> );
 }
 
-// --- fetchFilteredProperties AJUSTADO (sin 'piso' en fieldsForCard) ---
+// --- fetchFilteredProperties (se mantiene igual que tu última versión) ---
 async function fetchFilteredProperties(searchParamsObject) {
   const strapiApiUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1337/api';
   const apiIdPlural = 'propiedads';
-  
   const fotosField = 'fotos'; 
   const operacionRelField = 'operacion'; 
   const operacionNameField = 'nombre'; 
   const tipoPropRelField = 'tipo_de_propiedad'; 
   const tipoPropNameField = 'nombre'; 
-  
   const localidadSimpleField = 'localidad_simple'; 
   const ambientesField = 'ambientes';
   const precioField = 'precio'; 
   const cocheraField = 'cochera'; 
   const ascensorField = 'ascensor';
 
-  // --- Construcción de filtros (filters) ---
   let queryStringParts = [];
   if (searchParamsObject.operacion) { const val = `Quiero ${searchParamsObject.operacion.charAt(0).toUpperCase() + searchParamsObject.operacion.slice(1)}`; queryStringParts.push(`filters[${operacionRelField}][${operacionNameField}][$eqi]=${encodeURIComponent(val)}`); }
   if (searchParamsObject.tipo) { const val = searchParamsObject.tipo.charAt(0).toUpperCase() + searchParamsObject.tipo.slice(1); queryStringParts.push(`filters[${tipoPropRelField}][${tipoPropNameField}][$eqi]=${encodeURIComponent(val)}`);  }
@@ -40,26 +38,20 @@ async function fetchFilteredProperties(searchParamsObject) {
   if (searchParamsObject.ascensor === 'true') { queryStringParts.push(`filters[${ascensorField}][$eq]=true`); }
   const filterQuery = queryStringParts.join('&');
 
-  // --- Construcción de populate para relaciones ---
   const populateFieldsArray = [fotosField, operacionRelField, tipoPropRelField];
   const populateQuery = populateFieldsArray.map((field) => `populate[]=${field}`).join('&');
 
-  // --- Construcción de fields para campos simples ---
-  // 'piso' ha sido eliminado de esta lista.
   const fieldsForCard = ['titulo', 'precio', 'localidad_simple', 'slug', 'id', 'moneda']; 
   const fieldsQuery = fieldsForCard.map(f => `fields[]=${f}`).join('&');
   
-  // --- Paginación ---
   const currentPage = parseInt(searchParamsObject?.page) || 1;
   const pageSize = 9; 
   const paginationQuery = `pagination[page]=${currentPage}&pagination[pageSize]=${pageSize}`;
   
-  // --- Unir todas las partes de la query ---
   const queryParts = [filterQuery, populateQuery, fieldsQuery, paginationQuery].filter(Boolean);
   const fullQuery = queryParts.join('&');
 
   const fetchUrl = `${strapiApiUrl}/${apiIdPlural}?${fullQuery}`;
-  // console.log("[FetchFilteredProperties] Fetching URL:", fetchUrl); 
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
@@ -71,26 +63,15 @@ async function fetchFilteredProperties(searchParamsObject) {
       throw new Error(errorMessage);
     }
     const responseJson = await res.json();
-    
-    // console.log("[FetchFilteredProperties] Raw Response:", JSON.stringify(responseJson, null, 2));
-
-    const propertiesToReturn = responseJson.data?.map(prop => {
-        return prop; 
-    }) || [];
-
-    return { 
-      properties: propertiesToReturn,
-      pagination: responseJson.meta?.pagination || null, 
-      error: null 
-    };
+    const propertiesToReturn = responseJson.data?.map(prop => prop) || [];
+    return { properties: propertiesToReturn, pagination: responseJson.meta?.pagination || null, error: null };
   } catch (error) {
     console.error("Excepción al obtener propiedades filtradas:", error.message);
     return { properties: [], pagination: null, error: error.message };
   }
 }
-// --- FIN fetchFilteredProperties ---
 
-// fetchTiposDePropiedad (se mantiene igual que la última versión que funcionaba)
+// fetchTiposDePropiedad (se mantiene igual)
 async function fetchTiposDePropiedad() {
   const strapiApiUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1337/api';
   const endpoint = 'tipo-de-propiedads'; 
@@ -111,7 +92,6 @@ async function fetchTiposDePropiedad() {
 }
 
 
-// Componente PropiedadesPage (se mantiene igual en su estructura)
 export default function PropiedadesPage() {
   const router = useRouter();
   const searchParamsHook = useSearchParams(); 
@@ -119,6 +99,8 @@ export default function PropiedadesPage() {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Estados para los filtros avanzados (los que ya tenías)
   const [tiposPropiedadOptions, setTiposPropiedadOptions] = useState([]);
   const [selectedTipo, setSelectedTipo] = useState(searchParamsHook.get('tipo')?.toLowerCase() || '');
   const [ambientes, setAmbientes] = useState(searchParamsHook.get('ambientes') || '');
@@ -127,17 +109,29 @@ export default function PropiedadesPage() {
   const [conCochera, setConCochera] = useState(searchParamsHook.get('cochera') === 'true');
   const [conAscensor, setConAscensor] = useState(searchParamsHook.get('ascensor') === 'true');
 
+  // --- NUEVO ESTADO para controlar la visibilidad de los filtros en móvil ---
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  // Función para alternar la visibilidad de los filtros en móvil
+  const toggleMobileFilters = () => {
+    setIsMobileFiltersOpen(!isMobileFiltersOpen);
+  };
+  // --- FIN NUEVOS ESTADOS Y FUNCIÓN ---
+
+
   useEffect(() => { fetchTiposDePropiedad().then(options => { setTiposPropiedadOptions(options); }); }, []); 
 
   useEffect(() => {
     const paramsObj = {};
     for (const [key, value] of searchParamsHook.entries()) { paramsObj[key] = value; }
+    // Sincronizar estado de filtros con URL
     setSelectedTipo(searchParamsHook.get('tipo')?.toLowerCase() || '');
     setAmbientes(searchParamsHook.get('ambientes') || '');
     setPrecioMin(searchParamsHook.get('precioMin') || '');
     setPrecioMax(searchParamsHook.get('precioMax') || '');
     setConCochera(searchParamsHook.get('cochera') === 'true');
     setConAscensor(searchParamsHook.get('ascensor') === 'true');
+    
     setLoading(true); setError(null);
     fetchFilteredProperties(paramsObj)
       .then(data => {
@@ -159,6 +153,11 @@ export default function PropiedadesPage() {
     currentParams.delete('page'); 
     const newQueryString = currentParams.toString();
     router.push(`/propiedades${newQueryString ? `?${newQueryString}` : ''}`);
+    
+    // Opcional: cerrar el menú de filtros en móvil después de aplicar
+    if (isMobileFiltersOpen) {
+        setIsMobileFiltersOpen(false);
+    }
   };
 
   let initialFilterSummary = "Mostrando propiedades.";
@@ -173,22 +172,47 @@ export default function PropiedadesPage() {
   
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
+      {/* --- BOTÓN PARA MOSTRAR/OCULTAR FILTROS EN MÓVIL --- */}
+      <div className="md:hidden mb-6 text-center"> {/* Solo visible en pantallas < md */}
+        <button
+          onClick={toggleMobileFilters}
+          className="w-full flex items-center justify-center bg-schonfeld-blue-dark text-white py-2.5 px-4 rounded-md hover:bg-opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-schonfeld-blue-light"
+          aria-expanded={isMobileFiltersOpen}
+          aria-controls="advanced-filters-panel"
+        >
+          <AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />
+          {isMobileFiltersOpen ? 'Ocultar Filtros' : 'Mostrar Filtros Avanzados'}
+          {isMobileFiltersOpen ? <ChevronUpIcon className="h-5 w-5 ml-2"/> : <ChevronDownIcon className="h-5 w-5 ml-2"/>}
+        </button>
+      </div>
+      {/* --- FIN BOTÓN --- */}
+
       <div className="md:flex md:gap-8">
-        <aside className="md:w-1/4 lg:w-1/5 mb-8 md:mb-0">
-          <div className="p-4 bg-white rounded-lg shadow-md sticky top-24">
+        {/* --- PANEL DE FILTROS AVANZADOS --- */}
+        <aside 
+          id="advanced-filters-panel"
+          className={`
+            md:w-1/4 lg:w-1/5 md:mb-0 
+            ${isMobileFiltersOpen ? 'block mb-8' : 'hidden'} {/* Se muestra/oculta en móvil y añade margen si está abierto */}
+            md:block  {/* Siempre visible en pantallas md y mayores */}
+          `}
+        >
+          <div className="p-4 bg-white rounded-lg shadow-lg md:sticky md:top-24"> {/* md:shadow-lg para que el sticky tenga sombra solo en escritorio */}
             <h3 className="text-lg font-semibold text-schonfeld-blue-dark mb-4">Filtros Avanzados</h3>
             <div className="space-y-4">
-              <div> <label htmlFor="adv_tipo_propiedad" className="block text-sm font-medium text-gray-700">Tipo de Propiedad</label> <select id="adv_tipo_propiedad" value={selectedTipo} onChange={(e) => setSelectedTipo(e.target.value)} className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm" disabled={tiposPropiedadOptions.length === 0} > <option value="">Cualquiera</option> {tiposPropiedadOptions.map(tipo => ( <option key={tipo.id} value={tipo.nombre.toLowerCase()}>{tipo.nombre}</option> ))} </select> </div>
-              <div> <label htmlFor="adv_ambientes" className="block text-sm font-medium text-gray-700">Ambientes</label> <select id="adv_ambientes" value={ambientes} onChange={(e) => setAmbientes(e.target.value)} className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm"> <option value="">Cualquiera</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option> </select> </div>
-              <div> <label htmlFor="adv_precioMin" className="block text-sm font-medium text-gray-700">Precio Mín. (USD)</label> <input type="number" id="adv_precioMin" value={precioMin} onChange={(e) => setPrecioMin(e.target.value)} placeholder="Ej: 50000" className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm"/> </div>
-              <div> <label htmlFor="adv_precioMax" className="block text-sm font-medium text-gray-700">Precio Máx. (USD)</label> <input type="number" id="adv_precioMax" value={precioMax} onChange={(e) => setPrecioMax(e.target.value)} placeholder="Ej: 200000" className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm"/> </div>
-              <div className="flex items-center"><input id="adv_cochera" type="checkbox" checked={conCochera} onChange={(e) => setConCochera(e.target.checked)} className="h-4 w-4 text-schonfeld-red border-gray-300 rounded"/><label htmlFor="adv_cochera" className="ml-2 block text-sm text-gray-900">Con Cochera</label></div>
-              <div className="flex items-center"><input id="adv_ascensor" type="checkbox" checked={conAscensor} onChange={(e) => setConAscensor(e.target.checked)} className="h-4 w-4 text-schonfeld-red border-gray-300 rounded"/><label htmlFor="adv_ascensor" className="ml-2 block text-sm text-gray-900">Con Ascensor</label></div>
-              <button onClick={handleAdvancedFilterSubmit} className="w-full bg-schonfeld-blue-dark text-white font-semibold py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors mt-4">Aplicar Filtros</button>
+              <div> <label htmlFor="adv_tipo_propiedad" className="block text-sm font-medium text-gray-700">Tipo de Propiedad</label> <select id="adv_tipo_propiedad" value={selectedTipo} onChange={(e) => setSelectedTipo(e.target.value)} className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-schonfeld-blue-dark focus:border-schonfeld-blue-dark" disabled={tiposPropiedadOptions.length === 0} > <option value="">Cualquiera</option> {tiposPropiedadOptions.map(tipo => ( <option key={tipo.id} value={tipo.nombre.toLowerCase()}>{tipo.nombre}</option> ))} </select> </div>
+              <div> <label htmlFor="adv_ambientes" className="block text-sm font-medium text-gray-700">Ambientes</label> <select id="adv_ambientes" value={ambientes} onChange={(e) => setAmbientes(e.target.value)} className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-schonfeld-blue-dark focus:border-schonfeld-blue-dark"> <option value="">Cualquiera</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option> </select> </div>
+              <div> <label htmlFor="adv_precioMin" className="block text-sm font-medium text-gray-700">Precio Mín. (USD)</label> <input type="number" id="adv_precioMin" value={precioMin} onChange={(e) => setPrecioMin(e.target.value)} placeholder="Ej: 50000" className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-schonfeld-blue-dark focus:border-schonfeld-blue-dark"/> </div>
+              <div> <label htmlFor="adv_precioMax" className="block text-sm font-medium text-gray-700">Precio Máx. (USD)</label> <input type="number" id="adv_precioMax" value={precioMax} onChange={(e) => setPrecioMax(e.target.value)} placeholder="Ej: 200000" className="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-schonfeld-blue-dark focus:border-schonfeld-blue-dark"/> </div>
+              <div className="flex items-center"><input id="adv_cochera" type="checkbox" checked={conCochera} onChange={(e) => setConCochera(e.target.checked)} className="h-4 w-4 text-schonfeld-red border-gray-300 rounded focus:ring-schonfeld-red"/><label htmlFor="adv_cochera" className="ml-2 block text-sm text-gray-900">Con Cochera</label></div>
+              <div className="flex items-center"><input id="adv_ascensor" type="checkbox" checked={conAscensor} onChange={(e) => setConAscensor(e.target.checked)} className="h-4 w-4 text-schonfeld-red border-gray-300 rounded focus:ring-schonfeld-red"/><label htmlFor="adv_ascensor" className="ml-2 block text-sm text-gray-900">Con Ascensor</label></div>
+              <button onClick={handleAdvancedFilterSubmit} className="w-full bg-schonfeld-red text-white font-semibold py-2 px-4 rounded-md hover:bg-opacity-90 transition-colors mt-4 focus:outline-none focus:ring-2 focus:ring-schonfeld-red-dark">Aplicar Filtros</button>
             </div>
           </div>
         </aside>
-        <main className="md:w-3/4 lg:w-4/5">
+        {/* --- FIN PANEL DE FILTROS --- */}
+
+        <main className="w-full md:w-3/4 lg:w-4/5"> {/* Ajustado para que ocupe todo el ancho si los filtros están ocultos en móvil */}
           <h1 className="text-3xl font-bold text-schonfeld-blue-dark mb-1">Propiedades Encontradas</h1>
           <p className="text-schonfeld-gray mb-6 text-sm">{initialFilterSummary}</p>
           {error && ( <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert"> <strong className="font-bold">¡Error al cargar datos!</strong> <span className="block sm:inline"> {error}</span> <p className="text-xs mt-1">Por favor, revisa la consola del servidor para más detalles técnicos o intenta de nuevo.</p> </div> )}
