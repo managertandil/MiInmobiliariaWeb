@@ -1,7 +1,17 @@
-// frontend/postcss.config.js (o .mjs con export default)
-module.exports = { // o export default { si es .mjs
+// frontend/postcss.config.mjs (o postcss.config.js si no usas módulos ES)
+
+// Si es postcss.config.mjs (ES Module)
+export default {
   plugins: {
-    tailwindcss: {}, // El plugin principal de Tailwind
+    tailwindcss: {}, // Tailwind CSS se registra a sí mismo
     autoprefixer: {},
   },
 };
+
+// Si fuera postcss.config.js (CommonJS)
+// module.exports = {
+//   plugins: {
+//     tailwindcss: {},
+//     autoprefixer: {},
+//   },
+// };
