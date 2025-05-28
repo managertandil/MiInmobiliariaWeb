@@ -1,30 +1,23 @@
-// frontend/next.config.js o next.config.mjs
+// frontend/next.config.mjs
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Aquí podrías tener otras configuraciones como reactStrictMode, etc.
-  // Si no tienes otras, puedes dejarlo así o añadir reactStrictMode: true, por ejemplo.
-  // reactStrictMode: true,
-
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
-        port: '', // Puerto por defecto para https (443)
-        // pathname: '/**', // Opción más general y simple para empezar
-        // Opción más específica y segura (recomendada):
-        // Necesitarás definir NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME en tu .env.local
-        pathname: `/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'TU_CLOUD_NAME_AQUI'}/image/upload/**`, 
+        // No es necesario especificar 'port' si es el default (443 para https)
+        // 'pathname: /**' permite cualquier ruta dentro de ese hostname de Cloudinary.
+        pathname: '/**', 
       },
-      {
-        // Para permitir imágenes locales de Strapi durante el desarrollo
+      { 
         protocol: 'http',
         hostname: 'localhost',
-        port: '1337', // Asegúrate que este sea el puerto de tu Strapi
-        pathname: '/uploads/**',
+        port: '1337', // Puerto de tu Strapi local
+        pathname: '/uploads/**', // Ruta de tus uploads locales en Strapi
       },
-      // Puedes añadir más patrones aquí para otros dominios si los necesitas
     ],
   },
 };

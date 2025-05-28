@@ -1,27 +1,20 @@
 /* frontend/src/app/globals.css */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 
-   Puedes añadir estilos globales personalizados DEBAJO de estas directivas si es necesario.
-   Por ejemplo:
-   body {
-     font-family: 'TuFuentePreferida', sans-serif;
-     background-color: #f0f2f5; // Un color de fondo muy sutil para toda la página
-   }
+/* Tus otros estilos globales pueden ir aquí abajo */
+body {
+  /* Ejemplo */
+  /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; */
+}
 
-   h1, h2, h3, h4, h5, h6 {
-     color: #143159; // Tu schonfeld-blue-dark para todos los encabezados por defecto
-   }
-
-   a {
-     color: #e90000; // Tu schonfeld-red para los enlaces por defecto
-     text-decoration: none; // Quitar subrayado por defecto
-   }
-
-   a:hover {
-     text-decoration: underline; // Añadir subrayado en hover
-   }
-*/
+/* Clases de text-shadow si las usas */
+@layer utilities {
+  .shadow-text-sm {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .shadow-text-md {
+    text-shadow: 0 2px 3px rgba(0,0,0,0.4);
+  }
+}
