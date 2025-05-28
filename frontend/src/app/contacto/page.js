@@ -17,8 +17,8 @@ export default function ContactoPage() {
     instagramUser: "schonfeld.inmobiliaria",
     instagramLink: "https://www.instagram.com/schonfeld.inmobiliaria/",
     // --- COORDENADAS ACTUALIZADAS ---
-    latitudOficina: -37.33241137144789, 
-    longitudOficina: -59.131066019168316, 
+    latitudOficina: -37.33238570701355, 
+    longitudOficina: -59.131001668446636, 
     // --- FIN COORDENADAS ACTUALIZADAS ---
   };
 
