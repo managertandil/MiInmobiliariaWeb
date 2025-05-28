@@ -1,19 +1,13 @@
-// frontend/postcss.config.mjs (Alternativa si la anterior no funciona y el error persiste)
-// Asegúrate de tener @tailwindcss/postcss instalado: npm install -D @tailwindcss/postcss
+// frontend/postcss.config.js
 
-// Si es postcss.config.mjs (ES Module)
-export default {
+module.exports = {
   plugins: {
-    '@tailwindcss/postcss': {}, // Usando el paquete específico
+    // Opción 1: La forma moderna y más común (intenta esta primero)
+    tailwindcss: {}, 
     autoprefixer: {},
-    // Otros plugins de PostCSS si los tienes
+
+    // Opción 2: Si la Opción 1 sigue dando el error específico sobre "@tailwindcss/postcss"
+    // entonces comenta la línea de arriba "tailwindcss: {}," y descomenta la siguiente:
+    // '@tailwindcss/postcss': {}, 
   },
 };
-
-// Si fuera postcss.config.js (CommonJS)
-// module.exports = {
-//   plugins: {
-//     '@tailwindcss/postcss': {},
-//     autoprefixer: {},
-//   },
-// };
