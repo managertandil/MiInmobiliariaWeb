@@ -22,21 +22,39 @@ async function getPropertyDetailsBySlug(slugFromUrl) {
   const populateFieldsArray = ['fotos', 'operacion', 'tipo_de_propiedad'];
   const populateQueryString = populateFieldsArray.map((field) => `populate[]=${field}`).join('&');
   const fetchUrl = `${strapiApiUrl}/${apiIdPlural}?filters[${slugApiField}][$eq]=${encodeURIComponent(slugFromUrl)}&${populateQueryString}`;
+  
+  // console.log(`[getPropertyDetailsBySlug] Fetching property with URL: ${fetchUrl}`); 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
-    if (!res.ok) { const errorText = await res.text(); console.error(`PropertyDetailPage - Error fetching property (slug: ${slugFromUrl}, status: ${res.status}):`, errorText); return null; }
+    if (!res.ok) { 
+      // const errorText = await res.text(); // Comentado para evitar leer el cuerpo dos veces si hay error
+      console.error(`getPropertyDetailsBySlug - Error fetching property (slug: ${slugFromUrl}, status: ${res.status})`); 
+      return null; 
+    }
     const responseJson = await res.json();
-    if (responseJson.data && Array.isArray(responseJson.data) && responseJson.data.length > 0) { return responseJson.data[0]; } 
-    else { return null; }
-  } catch (error) { console.error(`PropertyDetailPage - Exception while fetching property (slug: ${slugFromUrl}):`, error); return null; }
+    // console.log(`[getPropertyDetailsBySlug] Raw JSON response for slug ${slugFromUrl}:`, JSON.stringify(responseJson, null, 2)); 
+    
+    if (responseJson.data && Array.isArray(responseJson.data) && responseJson.data.length > 0) { 
+      const propertyObject = responseJson.data[0];
+      // console.log(`[getPropertyDetailsBySlug] Property object found:`, propertyObject);
+      return propertyObject;
+    } else { 
+      // console.warn(`[getPropertyDetailsBySlug] No property data array found for slug: ${slugFromUrl} in response:`, responseJson);
+      return null; 
+    }
+  } catch (error) { 
+    console.error(`getPropertyDetailsBySlug - Exception while fetching property (slug: ${slugFromUrl}):`, error); 
+    return null; 
+  }
 }
 
-// --- FUNCIÓN generateMetadata (CON CORRECCIÓN EN OG IMAGE) ---
 export async function generateMetadata({ params }) {
   const { slug } = params;
+  // console.log(`[generateMetadata] Generating metadata for slug: ${slug}`);
   const propertyData = await getPropertyDetailsBySlug(slug);
 
   if (!propertyData) {
+    // console.warn(`[generateMetadata] No property data found for slug: ${slug}. Returning default metadata.`);
     return {
       title: 'Propiedad no Encontrada | Schonfeld Inmobiliaria',
       description: 'La propiedad que buscas no está disponible o no existe.',
@@ -44,55 +62,27 @@ export async function generateMetadata({ params }) {
   }
 
   const { titulo, descripcion, operacion, tipo_de_propiedad, localidad_simple, fotos } = propertyData;
+  // console.log("[generateMetadata] Contenido de 'fotos' para OG image:", JSON.stringify(fotos, null, 2));
 
   const operacionNombre = typeof operacion === 'object' && operacion !== null ? String(operacion.nombre || '').trim().replace('Quiero ', '') : 'Operación';
   const tipoPropiedadNombre = typeof tipo_de_propiedad === 'object' && tipo_de_propiedad !== null ? String(tipo_de_propiedad.nombre || '').trim() : 'Propiedad';
   const pageTitle = `${titulo || tipoPropiedadNombre} en ${operacionNombre.toLowerCase()} ${localidad_simple ? `en ${localidad_simple}` : ''} | Schonfeld Inmobiliaria`;
   let metaDescription = `Encuentra ${titulo || tipoPropiedadNombre} en ${operacionNombre.toLowerCase()} ${localidad_simple ? `en ${localidad_simple}` : ''}. Detalles y contacto en Schonfeld Desarrollos Inmobiliarios.`;
-  if (descripcion) { 
-    const plainTextDescription = descripcion.replace(/<[^>]+>/g, ' ').replace(/\s\s+/g, ' ').trim(); 
-    metaDescription = plainTextDescription.substring(0, 155); 
-    if (plainTextDescription.length > 155) { metaDescription += '...'; } 
-  }
+  if (descripcion) { const plainTextDescription = descripcion.replace(/<[^>]+>/g, ' ').replace(/\s\s+/g, ' ').trim(); metaDescription = plainTextDescription.substring(0, 155); if (plainTextDescription.length > 155) { metaDescription += '...'; } }
   
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const strapiBaseUrl = process.env.NEXT_PUBLIC_STRAPI_BASE_URL || 'http://localhost:1337';
-  
   let ogImageUrl = `${siteUrl}/default-og-image.jpg`; 
-
-  // --- ACCESO SEGURO Y CORREGIDO A LA IMAGEN ---
-  if (Array.isArray(fotos) && fotos.length > 0) {
-    const primeraFoto = fotos[0]; 
-    if (primeraFoto && typeof primeraFoto.url === 'string' && primeraFoto.url.trim() !== '') {
-      ogImageUrl = primeraFoto.url.startsWith('/') 
-        ? `${strapiBaseUrl}${primeraFoto.url}` 
-        : primeraFoto.url;
-    }
-  }
-  // --- FIN ACCESO SEGURO ---
+  if (Array.isArray(fotos) && fotos.length > 0) { const primeraFoto = fotos[0]; if (primeraFoto && typeof primeraFoto.url === 'string' && primeraFoto.url.trim() !== '') { ogImageUrl = primeraFoto.url.startsWith('/') ? `${strapiBaseUrl}${primeraFoto.url}` : primeraFoto.url; } }
 
   return {
-    title: pageTitle, 
-    description: metaDescription,
-    openGraph: { 
-      title: pageTitle, 
-      description: metaDescription, 
-      images: [{ url: ogImageUrl }], 
-      url: `${siteUrl}/propiedad/${slug}`, 
-      type: 'article' 
-    },
-    twitter: { 
-      card: 'summary_large_image', 
-      title: pageTitle, 
-      description: metaDescription, 
-      images: [ogImageUrl] 
-    },
+    title: pageTitle, description: metaDescription,
+    openGraph: { title: pageTitle, description: metaDescription, images: [{ url: ogImageUrl }], url: `${siteUrl}/propiedad/${slug}`, type: 'article' },
+    twitter: { card: 'summary_large_image', title: pageTitle, description: metaDescription, images: [ogImageUrl] },
   };
 }
-// --- FIN FUNCIÓN generateMetadata ---
 
-
-// --- COMPONENTE DE PÁGINA (PropertyDetailPage) ---
+// --- COMPONENTE DE PÁGINA ---
 export default async function PropertyDetailPage({ params }) {
   const { slug } = params; 
   const propertyData = await getPropertyDetailsBySlug(slug);
@@ -130,11 +120,20 @@ export default async function PropertyDetailPage({ params }) {
     titulo, descripcion, precio, moneda, localidad_simple, 
     ambientes, dormitorios, banos, superficie_cubierta, superficie_total,
     antiguedad, expensas, cochera, piso, ascensor, amenities,
+    balcón: balcon, // Renombrando para usar 'balcon' sin tilde en el código
     slug: propiedadSlugDeDatos, operacion, tipo_de_propiedad, codigo_interno, 
     direccion_completa, latitud, longitud, enlace_video,
     createdAt, publishedAt, 
   } = propertyData;
   
+  console.log("[PropertyDetailPage] Datos desestructurados (incluyendo balcón):", {
+    balcon_valor_desestructurado: balcon, // Esta es la variable 'balcon' (sin tilde)
+    tipo_de_balcon_desestructurado: typeof balcon,
+    valor_original_de_strapi_balcón: propertyData.balcón, // Para ver el valor original con tilde
+    piso_data: piso,
+    tipo_de_piso: typeof piso
+  });
+
   const operacionNombre = typeof operacion === 'object' && operacion !== null ? String(operacion.nombre || '').trim() : '';
   const tipoPropiedadNombre = typeof tipo_de_propiedad === 'object' && tipo_de_propiedad !== null ? String(tipo_de_propiedad.nombre || '').trim() : '';
   const antiguedadNum = typeof antiguedad === 'string' ? parseInt(antiguedad, 10) : (typeof antiguedad === 'number' ? antiguedad : null);
@@ -162,6 +161,7 @@ export default async function PropertyDetailPage({ params }) {
     ...(ambientes && !isNaN(parseInt(String(ambientes))) && { "numberOfRooms": parseInt(String(ambientes)) }),
     ...(dormitorios && !isNaN(parseInt(String(dormitorios))) && { "numberOfBedrooms": parseInt(String(dormitorios)) }),
     ...(banos && !isNaN(parseInt(String(banos))) && { "numberOfBathroomsTotal": parseInt(String(banos)) }),
+    ...(balcon === true && { "amenityFeature": { "@type": "LocationFeatureSpecification", "name": "Balcón", "value": true } }), // Usando la variable 'balcon'
     ...(superficie_total && !isNaN(parseFloat(String(superficie_total))) && parseFloat(String(superficie_total)) > 0 && { "floorSize": { "@type": "QuantitativeValue", "value": parseFloat(String(superficie_total)), "unitText": "m²", } }),
     ...(superficie_cubierta && !isNaN(parseFloat(String(superficie_cubierta))) && parseFloat(String(superficie_cubierta)) > 0 && { ...(!superficie_total && { "floorSize": { "@type": "QuantitativeValue", "value": parseFloat(String(superficie_cubierta)), "unitText": "m²" } }) }),
     ...(direccion_completa && { "address": { "@type": "PostalAddress", "streetAddress": direccion_completa, ...(localidad_simple && { "addressLocality": localidad_simple }), "addressRegion": "Buenos Aires", "addressCountry": "AR" } }),
@@ -176,7 +176,7 @@ export default async function PropertyDetailPage({ params }) {
         <div className="text-sm text-gray-500 mb-6"> <Link href="/" className="hover:text-schonfeld-red">Inicio</Link> / {' '} <Link href="/propiedades" className="hover:text-schonfeld-red">Propiedades</Link> / {' '} <span className="text-gray-700">{titulo || 'Detalle de Propiedad'}</span> </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2"> <PropertyImageGallery images={gallerySlides} initialTitle={titulo} /> </div>
-          <div className="lg:col-span-1"> <div className="bg-white p-6 rounded-lg shadow-lg sticky top-24"> <h1 className="text-2xl lg:text-3xl font-bold text-schonfeld-blue-dark mb-1">{titulo || 'Propiedad sin Título'}</h1> <p className="text-md text-schonfeld-gray mb-3"> {tipoPropiedadNombre || ''} en {operacionNombre?.replace('Quiero ', '') || ''} {localidad_simple && ` | ${localidad_simple}`} {` (Ref: ${codigo_interno || propiedadSlugDeDatos || slug || propertyData.id})`} </p> <p className="text-3xl font-bold text-schonfeld-red mb-6">{formatPrice(precio, moneda)}</p> <div className="space-y-1 text-sm text-gray-700 mb-4 pb-4 border-b border-gray-200"> {ambientes !== undefined && ambientes !== null && (<p><strong>Ambientes:</strong> {ambientes}</p>)} {dormitorios !== undefined && dormitorios !== null && (<p><strong>Dormitorios:</strong> {dormitorios}</p>)} {banos !== undefined && banos !== null && (<p><strong>Baños:</strong> {banos}</p>)} {pisoDisplay !== null && ( <p> <strong>Piso:</strong>{' '} {pisoDisplay} </p> )} {cocheraNum > 0 && (<p><strong>Cochera(s):</strong> {cocheraNum}</p>)} </div> {(antiguedadNum !== null && !isNaN(antiguedadNum)) || (typeof expensas === 'number' && expensas > 0) || (ascensor === true || ascensor === false) || (amenities === true || amenities === false) || (superficie_cubierta !== undefined && superficie_cubierta !== null) || (superficie_total !== undefined && superficie_total !== null) ? ( <div className="mt-0"> <h4 className="text-md font-semibold text-schonfeld-blue-dark mb-2">Más Detalles y Comodidades:</h4> <div className="space-y-1 text-sm text-gray-700"> {antiguedadNum !== null && !isNaN(antiguedadNum) && (<p><strong>Antigüedad:</strong> {antiguedadNum} {antiguedadNum === 1 ? 'año' : 'años'}</p>)} {typeof expensas === 'number' && expensas > 0 && (<p><strong>Expensas:</strong> {formatPrice(expensas, 'ARS')}</p> )} {(ascensor === true || ascensor === false) && (<p><strong>Ascensor:</strong> {ascensor ? 'Sí' : 'No'}</p>)} {(amenities === true || amenities === false) && (<p><strong>Amenities (generales):</strong> {amenities ? 'Sí' : 'No'}</p>)} {superficie_cubierta !== undefined && superficie_cubierta !== null && (<p><strong>Sup. Cubierta:</strong> {superficie_cubierta} m²</p>)} {superficie_total !== undefined && superficie_total !== null && (<p><strong>Sup. Total:</strong> {superficie_total} m²</p>)} </div> </div> ) : null} {(latitud && longitud) || direccion_completa ? ( <div className="mt-4 pt-4 border-t border-gray-200"> <h4 className="text-md font-semibold text-schonfeld-blue-dark mb-2">Ubicación</h4> <div className="text-sm text-gray-700 space-y-1"> {direccion_completa && <p>{direccion_completa}</p>} {localidad_simple && !direccion_completa && <p>{localidad_simple}</p>} {latitud && longitud && ( <a href={`https://www.google.com/maps/search/?api=1&query=${latitud},${longitud}`} target="_blank" rel="noopener noreferrer" className="inline-block text-schonfeld-red hover:text-red-700 font-medium hover:underline mt-1"> Ver en Google Maps </a> )} </div> </div> ) : null} </div> </div>
+          <div className="lg:col-span-1"> <div className="bg-white p-6 rounded-lg shadow-lg sticky top-24"> <h1 className="text-2xl lg:text-3xl font-bold text-schonfeld-blue-dark mb-1">{titulo || 'Propiedad sin Título'}</h1> <p className="text-md text-schonfeld-gray mb-3"> {tipoPropiedadNombre || ''} en {operacionNombre?.replace('Quiero ', '') || ''} {localidad_simple && ` | ${localidad_simple}`} {` (Ref: ${codigo_interno || propiedadSlugDeDatos || slug || propertyData.id})`} </p> <p className="text-3xl font-bold text-schonfeld-red mb-6">{formatPrice(precio, moneda)}</p> <div className="space-y-1 text-sm text-gray-700 mb-4 pb-4 border-b border-gray-200"> {ambientes !== undefined && ambientes !== null && (<p><strong>Ambientes:</strong> {ambientes}</p>)} {dormitorios !== undefined && dormitorios !== null && (<p><strong>Dormitorios:</strong> {dormitorios}</p>)} {banos !== undefined && banos !== null && (<p><strong>Baños:</strong> {banos}</p>)} {pisoDisplay !== null && ( <p> <strong>Piso:</strong>{' '} {pisoDisplay} </p> )} {cocheraNum > 0 && (<p><strong>Cochera(s):</strong> {cocheraNum}</p>)} </div> {(antiguedadNum !== null && !isNaN(antiguedadNum)) || (typeof expensas === 'number' && expensas > 0) || (ascensor === true || ascensor === false) || (amenities === true || amenities === false) || (balcon === true || balcon === false) || (superficie_cubierta !== undefined && superficie_cubierta !== null) || (superficie_total !== undefined && superficie_total !== null) ? ( <div className="mt-0"> <h4 className="text-md font-semibold text-schonfeld-blue-dark mb-2">Más Detalles y Comodidades:</h4> <div className="space-y-1 text-sm text-gray-700"> {antiguedadNum !== null && !isNaN(antiguedadNum) && (<p><strong>Antigüedad:</strong> {antiguedadNum} {antiguedadNum === 1 ? 'año' : 'años'}</p>)} {typeof expensas === 'number' && expensas > 0 && (<p><strong>Expensas:</strong> {formatPrice(expensas, 'ARS')}</p> )} {(ascensor === true || ascensor === false) && (<p><strong>Ascensor:</strong> {ascensor ? 'Sí' : 'No'}</p>)} {(amenities === true || amenities === false) && (<p><strong>Amenities (generales):</strong> {amenities ? 'Sí' : 'No'}</p>)} {(balcon === true || balcon === false) && ( <p><strong>Balcón:</strong> {balcon ? 'Sí' : 'No'}</p> )} {superficie_cubierta !== undefined && superficie_cubierta !== null && (<p><strong>Sup. Cubierta:</strong> {superficie_cubierta} m²</p>)} {superficie_total !== undefined && superficie_total !== null && (<p><strong>Sup. Total:</strong> {superficie_total} m²</p>)} </div> </div> ) : null} {(latitud && longitud) || direccion_completa ? ( <div className="mt-4 pt-4 border-t border-gray-200"> <h4 className="text-md font-semibold text-schonfeld-blue-dark mb-2">Ubicación</h4> <div className="text-sm text-gray-700 space-y-1"> {direccion_completa && <p>{direccion_completa}</p>} {localidad_simple && !direccion_completa && <p>{localidad_simple}</p>} {latitud && longitud && ( <a href={`https://www.google.com/maps/search/?api=1&query=${latitud},${longitud}`} target="_blank" rel="noopener noreferrer" className="inline-block text-schonfeld-red hover:text-red-700 font-medium hover:underline mt-1"> Ver en Google Maps </a> )} </div> </div> ) : null} </div> </div>
         </div>
         {descripcion && ( <div className="mt-10 pt-8 border-t border-gray-200"> <h2 className="text-2xl font-semibold text-schonfeld-blue-dark mb-4">Descripción Detallada</h2> <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: descripcion.replace(/\n/g, '<br />') }} /> </div> )}
         {enlace_video && (youtubeEmbedUrl || vimeoId) && ( <div className="mt-10 pt-8 border-t border-gray-200"> <h2 className="text-2xl font-semibold text-schonfeld-blue-dark mb-4">Video de la Propiedad</h2> <div className="relative w-full overflow-hidden rounded-lg shadow-lg aspect-video bg-black"> {youtubeEmbedUrl && (<iframe src={youtubeEmbedUrl} title="Video de la Propiedad (YouTube)" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="absolute top-0 left-0 w-full h-full"></iframe> )} {vimeoId && !youtubeEmbedUrl && (<iframe src={`https://player.vimeo.com/video/${vimeoId}`} frameBorder="0" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Video de la Propiedad (Vimeo)" className="absolute top-0 left-0 w-full h-full"></iframe> )} </div> </div> )}
