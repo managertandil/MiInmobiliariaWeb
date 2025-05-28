@@ -12,8 +12,29 @@ const formatPrice = (price, currency) => {
   catch (e) { console.error("Error formateando precio en [slug]/page.js, usando USD por defecto. Moneda recibida:", currency, "Error:", e); return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price); }
 };
 
-function getYouTubeEmbedUrl(url) { if (!url) return null; let videoId = null; try { const urlObj = new URL(url); if (urlObj.hostname === 'youtu.be') { videoId = urlObj.pathname.slice(1); } else if (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com') { videoId = urlObj.searchParams.get('v'); } } catch (e) { console.error("Error parsing YouTube URL:", e); return null; } return videoId ? `https://www.youtube.com/embed/${videoId}` : null; }
-function getVimeoId(url) { if (!url) return null; const vimeoRegex = /(?:vimeo\.com\/(?:video\/|channels\/[A-Za-z0-9]+\/|groups\/[A-Za-z0-9]+\/videos\/)?|player\.vimeo\.com\/video\/)([0-9]+)/; const match = vimeoRegex.exec(url); return match ? match[1] : null; }
+function getYouTubeEmbedUrl(url) { 
+  if (!url) return null; 
+  let videoId = null; 
+  try { 
+    const urlObj = new URL(url); 
+    if (urlObj.hostname === 'youtu.be') { 
+      videoId = urlObj.pathname.slice(1); 
+    } else if (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com') { 
+      videoId = urlObj.searchParams.get('v'); 
+    } 
+  } catch (e) { 
+    console.error("Error parsing YouTube URL:", e); 
+    return null; 
+  } 
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null; 
+}
+
+function getVimeoId(url) { 
+  if (!url) return null; 
+  const vimeoRegex = /(?:vimeo\.com\/(?:video\/|channels\/[A-Za-z0-9]+\/|groups\/[A-Za-z0-9]+\/videos\/)?|player\.vimeo\.com\/video\/)([0-9]+)/; 
+  const match = vimeoRegex.exec(url); 
+  return match ? match[1] : null; 
+}
 
 async function getPropertyDetailsBySlug(slugFromUrl) {
   const strapiApiUrl = process.env.NEXT_PUBLIC_STRAPI_API_URL || 'http://localhost:1337/api';
@@ -27,7 +48,6 @@ async function getPropertyDetailsBySlug(slugFromUrl) {
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) { 
-      // const errorText = await res.text(); // Comentado para evitar leer el cuerpo dos veces si hay error
       console.error(`getPropertyDetailsBySlug - Error fetching property (slug: ${slugFromUrl}, status: ${res.status})`); 
       return null; 
     }
@@ -50,11 +70,9 @@ async function getPropertyDetailsBySlug(slugFromUrl) {
 
 export async function generateMetadata({ params }) {
   const { slug } = params;
-  // console.log(`[generateMetadata] Generating metadata for slug: ${slug}`);
   const propertyData = await getPropertyDetailsBySlug(slug);
 
   if (!propertyData) {
-    // console.warn(`[generateMetadata] No property data found for slug: ${slug}. Returning default metadata.`);
     return {
       title: 'Propiedad no Encontrada | Schonfeld Inmobiliaria',
       description: 'La propiedad que buscas no está disponible o no existe.',
@@ -62,23 +80,49 @@ export async function generateMetadata({ params }) {
   }
 
   const { titulo, descripcion, operacion, tipo_de_propiedad, localidad_simple, fotos } = propertyData;
-  // console.log("[generateMetadata] Contenido de 'fotos' para OG image:", JSON.stringify(fotos, null, 2));
 
   const operacionNombre = typeof operacion === 'object' && operacion !== null ? String(operacion.nombre || '').trim().replace('Quiero ', '') : 'Operación';
   const tipoPropiedadNombre = typeof tipo_de_propiedad === 'object' && tipo_de_propiedad !== null ? String(tipo_de_propiedad.nombre || '').trim() : 'Propiedad';
   const pageTitle = `${titulo || tipoPropiedadNombre} en ${operacionNombre.toLowerCase()} ${localidad_simple ? `en ${localidad_simple}` : ''} | Schonfeld Inmobiliaria`;
   let metaDescription = `Encuentra ${titulo || tipoPropiedadNombre} en ${operacionNombre.toLowerCase()} ${localidad_simple ? `en ${localidad_simple}` : ''}. Detalles y contacto en Schonfeld Desarrollos Inmobiliarios.`;
-  if (descripcion) { const plainTextDescription = descripcion.replace(/<[^>]+>/g, ' ').replace(/\s\s+/g, ' ').trim(); metaDescription = plainTextDescription.substring(0, 155); if (plainTextDescription.length > 155) { metaDescription += '...'; } }
+  if (descripcion) { 
+    const plainTextDescription = descripcion.replace(/<[^>]+>/g, ' ').replace(/\s\s+/g, ' ').trim(); 
+    metaDescription = plainTextDescription.substring(0, 155); 
+    if (plainTextDescription.length > 155) { metaDescription += '...'; } 
+  }
   
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const strapiBaseUrl = process.env.NEXT_PUBLIC_STRAPI_BASE_URL || 'http://localhost:1337';
+  
   let ogImageUrl = `${siteUrl}/default-og-image.jpg`; 
-  if (Array.isArray(fotos) && fotos.length > 0) { const primeraFoto = fotos[0]; if (primeraFoto && typeof primeraFoto.url === 'string' && primeraFoto.url.trim() !== '') { ogImageUrl = primeraFoto.url.startsWith('/') ? `${strapiBaseUrl}${primeraFoto.url}` : primeraFoto.url; } }
+
+  if (Array.isArray(fotos) && fotos.length > 0) {
+    const primeraFoto = fotos[0]; 
+    if (primeraFoto && typeof primeraFoto.url === 'string' && primeraFoto.url.trim() !== '') {
+      if (primeraFoto.url.startsWith('/')) {
+        ogImageUrl = `${strapiBaseUrl}${primeraFoto.url}`;
+      } else {
+        ogImageUrl = primeraFoto.url;
+      }
+    }
+  }
 
   return {
-    title: pageTitle, description: metaDescription,
-    openGraph: { title: pageTitle, description: metaDescription, images: [{ url: ogImageUrl }], url: `${siteUrl}/propiedad/${slug}`, type: 'article' },
-    twitter: { card: 'summary_large_image', title: pageTitle, description: metaDescription, images: [ogImageUrl] },
+    title: pageTitle, 
+    description: metaDescription,
+    openGraph: { 
+      title: pageTitle, 
+      description: metaDescription, 
+      images: [{ url: ogImageUrl }], 
+      url: `${siteUrl}/propiedad/${slug}`, 
+      type: 'article' 
+    },
+    twitter: { 
+      card: 'summary_large_image', 
+      title: pageTitle, 
+      description: metaDescription, 
+      images: [ogImageUrl] 
+    },
   };
 }
 
@@ -120,19 +164,18 @@ export default async function PropertyDetailPage({ params }) {
     titulo, descripcion, precio, moneda, localidad_simple, 
     ambientes, dormitorios, banos, superficie_cubierta, superficie_total,
     antiguedad, expensas, cochera, piso, ascensor, amenities,
-    balcón: balcon, // Renombrando para usar 'balcon' sin tilde en el código
+    balcon, // Asumiendo que el API ID en Strapi es 'balcon' (sin tilde)
     slug: propiedadSlugDeDatos, operacion, tipo_de_propiedad, codigo_interno, 
     direccion_completa, latitud, longitud, enlace_video,
     createdAt, publishedAt, 
   } = propertyData;
   
-  console.log("[PropertyDetailPage] Datos desestructurados (incluyendo balcón):", {
-    balcon_valor_desestructurado: balcon, // Esta es la variable 'balcon' (sin tilde)
-    tipo_de_balcon_desestructurado: typeof balcon,
-    valor_original_de_strapi_balcón: propertyData.balcón, // Para ver el valor original con tilde
-    piso_data: piso,
-    tipo_de_piso: typeof piso
-  });
+  // Descomenta las siguientes líneas para depurar los valores que llegan
+  /*
+  console.log(`[PropertyDetailPage] Slug: ${slug} - Valor de 'propertyData.balcon':`, propertyData.balcon, "| Tipo:", typeof propertyData.balcon);
+  console.log(`[PropertyDetailPage] Slug: ${slug} - Valor de 'balcon' desestructurado:`, balcon, "| Tipo:", typeof balcon);
+  console.log(`[PropertyDetailPage] Slug: ${slug} - Valor de 'piso':`, piso, "| Tipo:", typeof piso);
+  */
 
   const operacionNombre = typeof operacion === 'object' && operacion !== null ? String(operacion.nombre || '').trim() : '';
   const tipoPropiedadNombre = typeof tipo_de_propiedad === 'object' && tipo_de_propiedad !== null ? String(tipo_de_propiedad.nombre || '').trim() : '';
@@ -161,7 +204,7 @@ export default async function PropertyDetailPage({ params }) {
     ...(ambientes && !isNaN(parseInt(String(ambientes))) && { "numberOfRooms": parseInt(String(ambientes)) }),
     ...(dormitorios && !isNaN(parseInt(String(dormitorios))) && { "numberOfBedrooms": parseInt(String(dormitorios)) }),
     ...(banos && !isNaN(parseInt(String(banos))) && { "numberOfBathroomsTotal": parseInt(String(banos)) }),
-    ...(balcon === true && { "amenityFeature": { "@type": "LocationFeatureSpecification", "name": "Balcón", "value": true } }), // Usando la variable 'balcon'
+    ...(balcon === true && { "amenityFeature": [{ "@type": "LocationFeatureSpecification", "name": "Balcón", "value": true }] }), // Modificado para ser un array
     ...(superficie_total && !isNaN(parseFloat(String(superficie_total))) && parseFloat(String(superficie_total)) > 0 && { "floorSize": { "@type": "QuantitativeValue", "value": parseFloat(String(superficie_total)), "unitText": "m²", } }),
     ...(superficie_cubierta && !isNaN(parseFloat(String(superficie_cubierta))) && parseFloat(String(superficie_cubierta)) > 0 && { ...(!superficie_total && { "floorSize": { "@type": "QuantitativeValue", "value": parseFloat(String(superficie_cubierta)), "unitText": "m²" } }) }),
     ...(direccion_completa && { "address": { "@type": "PostalAddress", "streetAddress": direccion_completa, ...(localidad_simple && { "addressLocality": localidad_simple }), "addressRegion": "Buenos Aires", "addressCountry": "AR" } }),
