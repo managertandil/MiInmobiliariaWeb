@@ -58,8 +58,9 @@ export async function generateMetadata({ params }) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const strapiBaseUrl = process.env.NEXT_PUBLIC_STRAPI_BASE_URL || 'http://localhost:1337';
   
-  let ogImageUrl = `${siteUrl}/default-og-image.jpg`; // Default image
+  let ogImageUrl = `${siteUrl}/default-og-image.jpg`; 
 
+  // --- ACCESO SEGURO Y CORREGIDO A LA IMAGEN ---
   if (Array.isArray(fotos) && fotos.length > 0) {
     const primeraFoto = fotos[0]; 
     if (primeraFoto && typeof primeraFoto.url === 'string' && primeraFoto.url.trim() !== '') {
@@ -68,6 +69,7 @@ export async function generateMetadata({ params }) {
         : primeraFoto.url;
     }
   }
+  // --- FIN ACCESO SEGURO ---
 
   return {
     title: pageTitle, 
@@ -171,7 +173,6 @@ export default async function PropertyDetailPage({ params }) {
     <>
       <Script id="property-jsonld" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ... (Resto del JSX se mantiene igual) ... */}
         <div className="text-sm text-gray-500 mb-6"> <Link href="/" className="hover:text-schonfeld-red">Inicio</Link> / {' '} <Link href="/propiedades" className="hover:text-schonfeld-red">Propiedades</Link> / {' '} <span className="text-gray-700">{titulo || 'Detalle de Propiedad'}</span> </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2"> <PropertyImageGallery images={gallerySlides} initialTitle={titulo} /> </div>
